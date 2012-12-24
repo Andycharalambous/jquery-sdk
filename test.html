@@ -1,0 +1,61 @@
+<html>
+	<head>
+		<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
+		<script type="text/javascript" src="js/dep/jquery.easing.js"></script>
+		<script type="text/javascript" src="js/dep/jquery.jsonp.js"></script>
+		<script type="text/javascript" src="js/dep/json2.js"></script>
+		<script type="text/javascript" src="js/dep/toolbox.expose.js"></script>
+		<script type="text/javascript" src="js/lib/jquery.transloadit2.js"></script>
+		<style type="text/css">
+
+			#dropbox {
+				width: 425px;
+				height: 300px;
+				border: 2px solid #DDD;
+				-moz-border-radius: 8px;
+				-webkit-border-radius: 8px;
+				background-color: #FEFFEC;
+				text-align: center;
+				color: #BBB;
+				font-size: 2em;
+				font-family: Arial, sans-serif;
+			}
+ 
+			#droplabel {
+				position: relative;
+				top: 40%;
+			}
+
+		</style>
+		<script>
+			$(function(){
+
+				var t = $("form").transloadit({
+					autoSubmit: false,
+					enableDragDrop: true,
+					fields: true,
+					processZeroFiles: false,
+					dropLocation: $("#dropbox"),
+					onSuccess: function(assembly){ console.log(assembly); },
+					onFilesDropped: function(files){ console.log(files.length + " dropped"); }
+				});
+
+				
+
+			});
+		</script>
+	</head>
+	<body>
+
+		<form action="success.html" method="post">
+			<input type="hidden" name="params" value="{&quot;auth&quot;:{&quot;key&quot;:&quot;ebe9e708442a45f78d908ae973e45026&quot;},&quot;template_id&quot;:&quot;1c5fd2b40ae24a6eb8a816920c787887&quot;}"/>
+			<input type="hidden" name="testfield" value="1234"/>
+			
+			<input type="submit"/>
+		</form>
+
+		<div id="dropbox"><span id="droplabel">Drop file here...</span></div>
+		
+
+	</body>
+</html>

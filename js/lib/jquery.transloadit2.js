@@ -20,6 +20,7 @@
       , onCancel: function() {}
       , onError: function() {}
       , onSuccess: function() {}
+      , onFilesDropped: function(files) {}
       , interval: 2500
       , pollTimeout: 8000
       , poll404Retries: 15
@@ -30,6 +31,8 @@
       , modal: true
       , exclude: ''
       , fields: false
+      , enableDragDrop: false
+      , dropLocation: null
       , debug: true
       }
     , CSS_LOADED = false;
@@ -39,7 +42,7 @@
       , method
       , uploader
       , r;
-
+    
     if (args.length == 1 && typeof args[0] == 'object' || args[0] === undefined) {
       args.unshift('init');
     }
@@ -56,7 +59,7 @@
     if (!uploader) {
       throw new Error('Element is not initialized for transloadit!');
     }
-
+    
     r = uploader[method].apply(uploader, args);
     return (r === undefined)
       ? this
@@ -89,6 +92,7 @@
     this.$fileClones = null;
     this.$iframe = null;
     this.$modal = null;
+    this.$html5Files = [];
   }
 
   Uploader.prototype.init = function($form, options) {
@@ -99,7 +103,7 @@
     $form.bind('submit.transloadit', function() {
       self.validate();
       self.detectFileInputs();
-      if (!self._options['processZeroFiles'] && self.$files.length === 0) {
+      if (!self._options['processZeroFiles'] && self.$files.length === 0 && self.$html5Files.length === 0) {
         self.submitForm();
       } else {
         self.getBoredInstance();
@@ -107,6 +111,30 @@
 
       return false;
     });
+
+    if (this._options['dropLocation']!=null) {
+      $.event.props.push("dataTransfer");
+      $(this._options['dropLocation']).bind('drop', function(e){
+        e.stopPropagation();
+        e.preventDefault();
+        
+        var files = e.dataTransfer.files;
+        self.addFiles(files);
+
+        self._options['onFilesDropped'].call(self,files);
+
+        return false;
+      }).bind('dragenter', function(e){
+        e.stopPropagation();
+        e.preventDefault();
+        return false;
+      }).bind('dragexit', function(e){
+        e.stopPropagation();
+        e.preventDefault();
+        return false;
+      });
+
+    }
 
     this.includeCss();
   };
@@ -206,8 +234,34 @@
         .attr('value', $(this).val())
         .prependTo(self.$uploadForm);
     });
+    
+    if (this._options['enableDragDrop']) {
+      
+      this.$iframe.remove();
 
-    this.$uploadForm.submit();
+      this.$uploadForm.attr('target', null);
+      var form = new FormData(this.$uploadForm[0]);
+      
+      $(this.$html5Files).each(function(i, file){
+        form.append('file'+i, file);
+      });
+      
+      var x = this._getHttpRequest();
+      x.onreadystatechange = function(){
+        if (x.readyState == 4) {
+          //console.log("Finished upload, status = " + x.status);
+        }
+      };
+      
+      x.open("POST", this.$uploadForm.attr('action'), true);
+      x.send(form);
+      
+
+    } else {
+
+      this.$uploadForm.submit();
+
+    }
 
     this.lastPoll = +new Date;
     setTimeout(function() {
@@ -361,6 +415,7 @@
           if (self._options.autoSubmit) {
             self.submitForm();
           }
+          self.$html5Files = [];
           return;
         }
 
@@ -423,8 +478,10 @@
 
       this._poll('?method=delete');
 
-      if (navigator.appName == 'Microsoft Internet Explorer') {
-        this.$iframe[0].contentWindow.document.execCommand('Stop');
+      if (!this._options['enableDragDrop']) {
+        if (navigator.appName == 'Microsoft Internet Explorer') {
+          this.$iframe[0].contentWindow.document.execCommand('Stop');
+        }
       }
 
       setTimeout(function() {
@@ -581,5 +638,22 @@
     }
 
     this._options[key] = val;
+  };
+
+  Uploader.prototype.addFiles = function(files) {
+    if (this._options['enableDragDrop']) {
+      var $this = this;
+      $(files).each(function(){ $this.$html5Files.push(this);})    
+    } else {
+      throw new Error("You must set enableDragDrop to true to use this feature!");
+    }
+  };
+
+  Uploader.prototype._getHttpRequest = function() {
+    var x = new XMLHttpRequest();
+    if ("withCredentials" in x){
+      return x;
+    }
+    throw new Error("Unsupported browser. Please set enableDragDrop to false");
   };
 })(jQuery);
